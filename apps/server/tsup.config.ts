@@ -1,10 +1,16 @@
 import { defineConfig } from 'tsup';
+import { resolve } from 'path';
 
 export default defineConfig({
-  entry: ['./src/index.ts'],
-  outDir: 'dist',
-  format: ['esm'],
+  entry: ['src/app.ts'],
+  format: ['cjs'],
   dts: true,
-  sourcemap: true,
   clean: true,
+  sourcemap: true,
+  tsconfig: resolve(__dirname, './tsconfig.json'),
+  esbuildOptions(options) {
+    options.alias = {
+      '@': resolve(__dirname, './src'),
+    };
+  },
 });
