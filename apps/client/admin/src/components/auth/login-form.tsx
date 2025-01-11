@@ -1,7 +1,6 @@
 'use client';
 
 import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/use-auth';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,8 +17,7 @@ import { toast } from 'sonner';
 import { AxiosError } from 'axios';
 
 export const LoginForm = () => {
-  const router = useRouter();
-  const { login, register } = useAuth();
+  const { login } = useAuth();
   const [activeTab, setActiveTab] = useState<'login' | 'register'>('login');
 
   const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -29,37 +27,17 @@ export const LoginForm = () => {
     const password = formData.get('password') as string;
 
     try {
-      await login.mutateAsync({ username, password });
-      toast.success('登录成功');
-      router.push('/');
+      const response = await login.mutateAsync({ username, password });
+      if (response.data.token && response.data.user) {
+        toast.success('登录成功');
+      }
     } catch (error) {
       if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.error || '登录失败');
+        const errorMessage = error.response?.data?.message || error.message;
+        toast.error(errorMessage || '登录失败');
       } else {
-        toast.error('登录失败');
+        toast.error('登录失败，请稍后重试');
       }
-      console.error('登录错误:', error);
-    }
-  };
-
-  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    const username = formData.get('username') as string;
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-
-    try {
-      await register.mutateAsync({ username, email, password });
-      toast.success('注册成功');
-      setActiveTab('login');
-    } catch (error) {
-      if (error instanceof AxiosError) {
-        toast.error(error.response?.data?.error || '注册失败');
-      } else {
-        toast.error('注册失败');
-      }
-      console.error('注册错误:', error);
     }
   };
 
@@ -109,51 +87,6 @@ export const LoginForm = () => {
                     disabled={login.isPending}
                   >
                     {login.isPending ? '登录中...' : '登录'}
-                  </Button>
-                </div>
-              </form>
-            </TabsContent>
-            <TabsContent value="register">
-              <form onSubmit={handleRegister}>
-                <div className="grid gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="reg-username">用户名</Label>
-                    <Input
-                      id="reg-username"
-                      name="username"
-                      placeholder="请输入用户名"
-                      required
-                      disabled={register.isPending}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="email">邮箱</Label>
-                    <Input
-                      id="email"
-                      name="email"
-                      type="email"
-                      placeholder="请输入邮箱"
-                      required
-                      disabled={register.isPending}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="reg-password">密码</Label>
-                    <Input
-                      id="reg-password"
-                      name="password"
-                      type="password"
-                      placeholder="请输入密码"
-                      required
-                      disabled={register.isPending}
-                    />
-                  </div>
-                  <Button
-                    type="submit"
-                    className="w-full"
-                    disabled={register.isPending}
-                  >
-                    {register.isPending ? '注册中...' : '注册'}
                   </Button>
                 </div>
               </form>

@@ -1,58 +1,93 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { privateKey } from '../config/keys';
-import { AppError } from './error';
+import { AppError } from '../utils/error';
+import { Role } from '../types/role';
+import { publicKey } from '../config/keys';
 
-interface JwtPayload {
-  id: string;
-  email: string;
-  role: string;
+// 扩展 Request 类型以包含用户信息
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
 }
 
-// 扩展 Express 的 Request 类型
-export interface AuthRequest extends Request {
-  user?: JwtPayload;
-}
-
+/**
+ * 认证中间件
+ */
 export const authenticate = async (
-  req: AuthRequest,
+  req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ) => {
   try {
+    // 从请求头获取 token
     const authHeader = req.headers.authorization;
-    if (!authHeader) {
-      throw new AppError(401, '未提供认证令牌');
+    console.log('Authorization header:', authHeader);
+
+    // 从 cookie 获取 token
+    const authCookie = req.cookies['auth-storage'];
+    console.log('Auth cookie:', authCookie);
+
+    let token: string | undefined;
+
+    if (authHeader && authHeader.startsWith('Bearer ')) {
+      // 从请求头获取 token
+      token = authHeader.split(' ')[1];
+    } else if (authCookie) {
+      // 从 cookie 获取 token
+      try {
+        const authData = JSON.parse(decodeURIComponent(authCookie));
+        console.log('Parsed auth data:', authData);
+        token = authData.state?.token;
+        console.log('Token from cookie:', token);
+      } catch (error) {
+        console.error('Failed to parse auth cookie:', error);
+        throw new AppError('无效的认证信息', 401);
+      }
     }
 
-    const token = authHeader.split(' ')[1];
     if (!token) {
-      throw new AppError(401, '认证令牌格式错误');
+      throw new AppError('未提供认证令牌', 401);
     }
 
-    const decoded = jwt.verify(token, privateKey, {
-      algorithms: ['RS256'],
-    }) as JwtPayload;
+    // 验证 token
+    const decoded = jwt.verify(token, publicKey, { algorithms: ['RS256'] });
+    console.log('Decoded token:', decoded);
 
-    req.user = decoded;
-    next();
+    if (typeof decoded === 'object' && decoded.id) {
+      req.user = {
+        id: decoded.id,
+        role: decoded.role as Role,
+      };
+      next();
+    } else {
+      throw new AppError('无效的认证令牌', 401);
+    }
   } catch (error) {
     if (error instanceof jwt.JsonWebTokenError) {
-      next(new AppError(401, '无效的认证令牌'));
+      next(new AppError('无效的认证令牌', 401));
     } else {
       next(error);
     }
   }
 };
 
-export const authorize = (...roles: string[]) => {
-  return (req: AuthRequest, res: Response, next: NextFunction) => {
+/**
+ * 授权中间件
+ */
+export const authorize = (...roles: Role[]) => {
+  return (req: AuthenticatedRequest, res: Response, next: NextFunction) => {
     if (!req.user) {
-      return next(new AppError(401, '未认证'));
+      return next(new AppError('未认证', 401));
     }
 
-    if (!roles.includes(req.user.role)) {
-      return next(new AppError(403, '无权限访问'));
+    // 转换角色名称
+    const userRole =
+      req.user.role === 'SUPERADMIN' ? 'SUPER_ADMIN' : req.user.role;
+
+    if (!roles.includes(userRole as Role)) {
+      return next(new AppError('无权限访问', 403));
     }
 
     next();

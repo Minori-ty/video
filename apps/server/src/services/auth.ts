@@ -69,7 +69,7 @@ export class AuthService {
         {
           id: user.id,
           email: user.email,
-          role: user.role,
+          role: user.role === 'SUPERADMIN' ? 'SUPER_ADMIN' : user.role,
         },
         privateKey,
         { algorithm: 'RS256', expiresIn: '7d' }

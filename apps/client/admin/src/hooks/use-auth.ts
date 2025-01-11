@@ -1,59 +1,59 @@
 import { useMutation } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
+import { AxiosError, AxiosResponse } from 'axios';
 import { useAuthStore } from '@/stores/auth';
 import { encrypt } from '@/lib/crypto';
-import axios from 'axios';
+import { axios } from '@/lib/axios';
 
 interface LoginData {
   username: string;
   password: string;
 }
 
-interface RegisterData extends LoginData {
-  email: string;
+interface AuthResponse {
+  token: string;
+  user: {
+    id: string;
+    email: string;
+    name: string;
+    role: string;
+  };
 }
 
 export const useAuth = () => {
   const { setAuth, clearAuth } = useAuthStore();
+  const router = useRouter();
 
-  const login = useMutation({
-    mutationFn: async (data: LoginData) => {
-      const encryptedPassword = encrypt(data.password);
-      const response = await axios.post(
-        'http://localhost:8000/api/auth/login',
-        {
+  const login = useMutation<AxiosResponse<AuthResponse>, AxiosError, LoginData>(
+    {
+      mutationFn: async (data) => {
+        const encryptedPassword = encrypt(data.password);
+        return await axios.post<AuthResponse>('/auth/login', {
           username: data.username,
           password: encryptedPassword,
+        });
+      },
+      onSuccess: (response) => {
+        const { token, user } = response.data;
+        setAuth(token, user);
+        router.push('/');
+      },
+      onError: (error) => {
+        if (error instanceof AxiosError) {
+          console.error('登录失败:', {
+            status: error.response?.status,
+            data: error.response?.data,
+            message: error.message,
+          });
+        } else {
+          console.error('未知登录错误:', error);
         }
-      );
-      return response.data;
-    },
-    onSuccess: (data) => {
-      setAuth(data.token, data.user);
-    },
-  });
-
-  const register = useMutation({
-    mutationFn: async (data: RegisterData) => {
-      const encryptedPassword = encrypt(data.password);
-      const response = await axios.post(
-        'http://localhost:8000/api/auth/register',
-        {
-          username: data.username,
-          email: data.email,
-          password: encryptedPassword,
-        }
-      );
-      return response.data;
-    },
-  });
-
-  const logout = () => {
-    clearAuth();
-  };
+      },
+    }
+  );
 
   return {
     login,
-    register,
-    logout,
+    clearAuth,
   };
 };

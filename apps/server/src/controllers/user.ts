@@ -1,6 +1,20 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/user';
-import { AuthRequest } from '../middlewares/auth';
+import { AppError } from '../utils/error';
+import {
+  paginationSchema,
+  updateUserSchema,
+  resetPasswordSchema,
+  changePasswordSchema,
+} from '../schemas/user';
+
+// 扩展 Express 的 Request 类型
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string;
+    role: string;
+  };
+}
 
 const userService = new UserService();
 
@@ -8,12 +22,13 @@ export class UserController {
   /**
    * 获取当前用户信息
    */
-  async getCurrentUser(req: AuthRequest, res: Response, next: NextFunction) {
+  async getCurrentUser(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) {
     try {
-      if (!req.user) {
-        throw new Error('未认证');
-      }
-      const user = await userService.getUserById(req.user.id);
+      const user = await userService.getUserById(req.user!.id);
       res.json(user);
     } catch (error) {
       next(error);
@@ -25,9 +40,12 @@ export class UserController {
    */
   async getUsers(req: Request, res: Response, next: NextFunction) {
     try {
-      const page = Number(req.query.page) || 1;
-      const pageSize = Number(req.query.pageSize) || 10;
-      const users = await userService.getUsers(page, pageSize);
+      const result = paginationSchema.safeParse(req.query);
+      if (!result.success) {
+        throw new AppError('无效的分页参数', 400);
+      }
+
+      const users = await userService.getUsers(result.data);
       res.json(users);
     } catch (error) {
       next(error);
@@ -35,13 +53,30 @@ export class UserController {
   }
 
   /**
-   * 更新用户角色
+   * 获取用户详情
    */
-  async updateUserRole(req: Request, res: Response, next: NextFunction) {
+  async getUserById(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId } = req.params;
-      const { role } = req.body;
-      const user = await userService.updateUserRole(userId, role);
+      const { id } = req.params;
+      const user = await userService.getUserById(id);
+      res.json(user);
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 更新用户信息
+   */
+  async updateUser(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = updateUserSchema.safeParse(req.body);
+      if (!result.success) {
+        throw new AppError('无效的用户信息', 400);
+      }
+
+      const { id } = req.params;
+      const user = await userService.updateUser(id, result.data);
       res.json(user);
     } catch (error) {
       next(error);
@@ -53,25 +88,9 @@ export class UserController {
    */
   async deleteUser(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId } = req.params;
-      await userService.deleteUser(userId);
-      res.status(204).end();
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * 修改密码
-   */
-  async changePassword(req: AuthRequest, res: Response, next: NextFunction) {
-    try {
-      if (!req.user) {
-        throw new Error('未认证');
-      }
-      const { oldPassword, newPassword } = req.body;
-      await userService.changePassword(req.user.id, oldPassword, newPassword);
-      res.status(204).end();
+      const { id } = req.params;
+      await userService.deleteUser(id);
+      res.status(204).send();
     } catch (error) {
       next(error);
     }
@@ -82,10 +101,57 @@ export class UserController {
    */
   async resetPassword(req: Request, res: Response, next: NextFunction) {
     try {
-      const { userId } = req.params;
-      const { newPassword } = req.body;
-      await userService.resetPassword(userId, newPassword);
-      res.status(204).end();
+      const result = resetPasswordSchema.safeParse(req.body);
+      if (!result.success) {
+        throw new AppError('无效的密码格式', 400);
+      }
+
+      const { id } = req.params;
+      await userService.resetPassword(id, result.data.password);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 修改密码
+   */
+  async changePassword(
+    req: AuthenticatedRequest,
+    res: Response,
+    next: NextFunction
+  ) {
+    try {
+      const result = changePasswordSchema.safeParse(req.body);
+      if (!result.success) {
+        throw new AppError('无效的密码格式', 400);
+      }
+
+      const { oldPassword, newPassword } = result.data;
+      await userService.changePassword(req.user!.id, oldPassword, newPassword);
+      res.status(204).send();
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * 搜索用户
+   */
+  async searchUsers(req: Request, res: Response, next: NextFunction) {
+    try {
+      const result = paginationSchema.safeParse(req.query);
+      if (!result.success) {
+        throw new AppError('无效的分页参数', 400);
+      }
+
+      const { keyword } = req.query;
+      const users = await userService.searchUsers({
+        ...result.data,
+        keyword: keyword as string,
+      });
+      res.json(users);
     } catch (error) {
       next(error);
     }
