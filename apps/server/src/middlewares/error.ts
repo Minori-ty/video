@@ -1,4 +1,5 @@
 import { Request, Response, NextFunction } from 'express';
+import logger from '../lib/logger';
 
 export class AppError extends Error {
   constructor(
@@ -17,13 +18,25 @@ export const errorHandler = (
   _next: NextFunction
 ) => {
   if (err instanceof AppError) {
+    // 记录业务错误
+    logger.warn({
+      message: err.message,
+      statusCode: err.statusCode,
+      stack: err.stack,
+    });
+
     return res.status(err.statusCode).json({
       error: err.message,
     });
   }
 
-  // 处理其他错误
-  console.error('未处理的错误:', err);
+  // 记录系统错误
+  logger.error({
+    message: '未处理的错误',
+    error: err,
+    stack: err.stack,
+  });
+
   res.status(500).json({
     error: '服务器内部错误',
   });

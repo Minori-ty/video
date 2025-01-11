@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { privateKey } from '../config/keys';
 import { AppError } from '../middlewares/error';
 import { z } from 'zod';
+import logger from '../lib/logger';
 
 const prisma = new PrismaClient();
 
@@ -27,52 +28,72 @@ export class AuthService {
    * @param data 登录数据
    */
   async login(data: LoginData) {
-    // 解密密码
-    const decryptedPassword = decrypt(data.password);
+    try {
+      // 先查找用户
+      const user = await prisma.user.findFirst({
+        where: {
+          OR: [{ email: data.username }, { name: data.username }],
+        },
+      });
 
-    // 查找用户
-    const user = await prisma.user.findFirst({
-      where: {
-        OR: [{ email: data.username }, { name: data.username }],
-      },
-    });
+      if (!user) {
+        throw new AppError(404, '用户不存在');
+      }
 
-    if (!user) {
-      throw new AppError(404, '用户不存在');
+      // 解密密码
+      let decryptedPassword: string;
+      try {
+        decryptedPassword = decrypt(data.password);
+      } catch (error) {
+        logger.error({
+          message: '密码解密失败',
+          error,
+        });
+        throw new AppError(400, '密码格式错误');
+      }
+
+      // 验证密码
+      const isValid = await verifyPassword(decryptedPassword, user.password);
+      if (!isValid) {
+        throw new AppError(401, '密码错误');
+      }
+
+      // 更新最后登录时间
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { lastLoginAt: new Date() },
+      });
+
+      // 生成token
+      const token = jwt.sign(
+        {
+          id: user.id,
+          email: user.email,
+          role: user.role,
+        },
+        privateKey,
+        { algorithm: 'RS256', expiresIn: '7d' }
+      );
+
+      return {
+        token,
+        user: {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          role: user.role,
+        },
+      };
+    } catch (error) {
+      if (error instanceof AppError) {
+        throw error;
+      }
+      logger.error({
+        message: '登录失败',
+        error,
+      });
+      throw new AppError(500, '登录失败');
     }
-
-    // 验证密码
-    const isValid = await verifyPassword(decryptedPassword, user.password);
-    if (!isValid) {
-      throw new AppError(401, '密码错误');
-    }
-
-    // 更新最后登录时间
-    await prisma.user.update({
-      where: { id: user.id },
-      data: { lastLoginAt: new Date() },
-    });
-
-    // 生成token
-    const token = jwt.sign(
-      {
-        id: user.id,
-        email: user.email,
-        role: user.role,
-      },
-      privateKey,
-      { algorithm: 'RS256', expiresIn: '7d' }
-    );
-
-    return {
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        name: user.name,
-        role: user.role,
-      },
-    };
   }
 
   /**
