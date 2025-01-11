@@ -1,8 +1,18 @@
 {
   "name": "@monorepo/root",
   "version": "1.0.0",
+  "private": true,
   "scripts": {
-    "prepare": "husky"
+    "prepare": "husky",
+    "dev:server": "pnpm --filter @monorepo/server dev",
+    "dev:admin": "pnpm --filter @monorepo/admin dev",
+    "dev": "pnpm run dev:server & pnpm run dev:admin",
+    "build:server": "pnpm --filter @monorepo/server build",
+    "build:admin": "pnpm --filter @monorepo/admin build",
+    "build": "pnpm run build:server && pnpm run build:admin",
+    "start:server": "pnpm --filter @monorepo/server start",
+    "start:admin": "pnpm --filter @monorepo/admin start",
+    "start": "pnpm run start:server & pnpm run start:admin"
   },
   "keywords": [],
   "author": "",

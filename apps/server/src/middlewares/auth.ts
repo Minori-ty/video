@@ -10,7 +10,7 @@ interface JwtPayload {
 }
 
 // 扩展 Express 的 Request 类型
-interface AuthRequest extends Request {
+export interface AuthRequest extends Request {
   user?: JwtPayload;
 }
 

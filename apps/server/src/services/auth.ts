@@ -1,10 +1,14 @@
 import { PrismaClient } from '@prisma/client';
-import { decrypt, hashPassword, verifyPassword } from '@/lib/crypto';
+import { decrypt, hashPassword, verifyPassword } from '../lib/crypto';
 import jwt from 'jsonwebtoken';
-import { privateKey } from '@/config/keys';
-import { AppError } from '@/middlewares/error';
+import { privateKey } from '../config/keys';
+import { AppError } from '../middlewares/error';
+import { z } from 'zod';
 
 const prisma = new PrismaClient();
+
+// 密码验证规则
+const passwordSchema = z.string().min(6, '密码至少6位').max(32, '密码最多32位');
 
 interface LoginData {
   username: string;
@@ -78,6 +82,16 @@ export class AuthService {
   async register(data: RegisterData) {
     // 解密密码
     const decryptedPassword = decrypt(data.password);
+
+    // 验证解密后的密码
+    try {
+      await passwordSchema.parseAsync(decryptedPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        throw new AppError(400, error.errors[0].message);
+      }
+      throw error;
+    }
 
     // 检查用户名是否存在
     const existingUser = await prisma.user.findFirst({

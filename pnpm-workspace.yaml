@@ -1,4 +1,6 @@
 packages:
-    - 'apps/client/*'
-    - 'apps/server/*'
-    - 'packages/*'
+  # 所有 apps 目录下的包
+  - 'apps/*'
+  - 'apps/client/*'
+  # 所有 packages 目录下的包
+  - 'packages/*'

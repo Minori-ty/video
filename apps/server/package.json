@@ -2,7 +2,7 @@
   "name": "@monorepo/server",
   "version": "1.0.0",
   "scripts": {
-    "dev": "tsup src/app.ts --watch --onSuccess \"node dist/app.js\"",
+    "dev": "esno src/app.ts",
     "build": "tsup src/app.ts",
     "start": "node dist/app.js",
     "clean": "esno prisma/clean.ts",

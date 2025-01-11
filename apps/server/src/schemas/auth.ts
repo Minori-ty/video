@@ -6,11 +6,9 @@ export const loginSchema = z.object({
       required_error: '用户名是必填的',
     })
     .min(1, '用户名不能为空'),
-  password: z
-    .string({
-      required_error: '密码是必填的',
-    })
-    .min(6, '密码至少6位'),
+  password: z.string({
+    required_error: '密码是必填的',
+  }),
 });
 
 export const registerSchema = z.object({
@@ -28,14 +26,7 @@ export const registerSchema = z.object({
     })
     .email('邮箱格式不正确'),
 
-  password: z
-    .string({
-      required_error: '密码是必填的',
-    })
-    .min(6, '密码至少6位')
-    .max(20, '密码最多20位')
-    .regex(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[^]{6,20}$/,
-      '密码必须包含大小写字母和数字'
-    ),
+  password: z.string({
+    required_error: '密码是必填的',
+  }),
 });

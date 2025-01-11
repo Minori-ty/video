@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { UserService } from '../services/user';
+import { AuthRequest } from '../middlewares/auth';
 
 const userService = new UserService();
 
@@ -7,9 +8,12 @@ export class UserController {
   /**
    * 获取当前用户信息
    */
-  async getCurrentUser(req: Request, res: Response, next: NextFunction) {
+  async getCurrentUser(req: AuthRequest, res: Response, next: NextFunction) {
     try {
-      const user = await userService.getUserById(req.user!.id);
+      if (!req.user) {
+        throw new Error('未认证');
+      }
+      const user = await userService.getUserById(req.user.id);
       res.json(user);
     } catch (error) {
       next(error);
@@ -60,10 +64,13 @@ export class UserController {
   /**
    * 修改密码
    */
-  async changePassword(req: Request, res: Response, next: NextFunction) {
+  async changePassword(req: AuthRequest, res: Response, next: NextFunction) {
     try {
+      if (!req.user) {
+        throw new Error('未认证');
+      }
       const { oldPassword, newPassword } = req.body;
-      await userService.changePassword(req.user!.id, oldPassword, newPassword);
+      await userService.changePassword(req.user.id, oldPassword, newPassword);
       res.status(204).end();
     } catch (error) {
       next(error);
