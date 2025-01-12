@@ -3,7 +3,15 @@
 import { FC, PropsWithChildren } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Users, Upload, Video, ClipboardList } from 'lucide-react';
+import {
+  Users,
+  Upload,
+  Video,
+  ClipboardList,
+  Settings,
+  LogOut,
+  User,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -11,6 +19,8 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { useAuth } from '@/hooks/use-auth';
@@ -65,10 +75,12 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
   const { clearAuth } = useAuth();
   const user = useAuthStore((state) => state.user);
 
-  const handleLogout = async () => {
+  // 判断是否是管理员
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'SUPERADMIN';
+
+  const handleLogout = () => {
     try {
       clearAuth();
-      toast.success('退出登录成功');
       router.push('/login');
     } catch {
       toast.error('退出登录失败');
@@ -81,7 +93,10 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
       <aside className="bg-background w-64 border-r">
         <nav className="flex flex-col gap-2 p-4">
           {navItems.map((item) => {
-            const Icon = item.icon;
+            // 如果需要管理员权限且用户不是管理员，则不显示
+            if (item.requireAdmin && !isAdmin) {
+              return null;
+            }
             return (
               <Link
                 key={item.href}
@@ -91,7 +106,7 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
                   pathname === item.href && 'bg-accent text-accent-foreground'
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <item.icon className="h-4 w-4" />
                 {item.title}
               </Link>
             );
@@ -101,23 +116,51 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
 
       <div className="flex flex-1 flex-col overflow-hidden">
         {/* 顶部导航栏 */}
-        <header className="flex h-14 items-center justify-end border-b px-4">
+        <header className="flex h-14 items-center justify-between border-b px-4">
+          <div className="text-lg font-semibold">
+            {navItems.find((item) => item.href === pathname)?.title || '仪表盘'}
+          </div>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
+              <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                 <Avatar className="h-8 w-8">
-                  <AvatarFallback>
+                  {/* <AvatarImage
+                    src={user?.profilePicture}
+                    alt={user?.name || ''}
+                  /> */}
+                  <AvatarFallback className="bg-primary/10">
                     {user?.name?.[0]?.toUpperCase() || 'U'}
                   </AvatarFallback>
                 </Avatar>
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
+            <DropdownMenuContent className="w-56" align="end" forceMount>
+              <DropdownMenuLabel className="font-normal">
+                <div className="flex flex-col space-y-1">
+                  <p className="text-sm font-medium leading-none">
+                    {user?.name}
+                  </p>
+                  <p className="text-muted-foreground text-xs leading-none">
+                    {user?.email}
+                  </p>
+                </div>
+              </DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem>
+                <User className="mr-2 h-4 w-4" />
+                <span>个人资料</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>设置</span>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               <DropdownMenuItem
+                className="text-red-600 focus:text-red-600"
                 onClick={handleLogout}
-                className="cursor-pointer text-red-500"
               >
-                退出登录
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>退出登录</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
