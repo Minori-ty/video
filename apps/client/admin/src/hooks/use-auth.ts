@@ -2,7 +2,6 @@ import { useMutation } from '@tanstack/react-query';
 import { useRouter } from 'next/navigation';
 import { AxiosError, AxiosResponse } from 'axios';
 import { useAuthStore } from '@/stores/auth';
-import { encrypt } from '@/lib/crypto';
 import { axios } from '@/lib/axios';
 
 interface LoginData {
@@ -27,11 +26,11 @@ export const useAuth = () => {
   const login = useMutation<AxiosResponse<AuthResponse>, AxiosError, LoginData>(
     {
       mutationFn: async (data) => {
-        const encryptedPassword = encrypt(data.password);
-        return await axios.post<AuthResponse>('/auth/login', {
+        console.log('发送登录请求:', {
           username: data.username,
-          password: encryptedPassword,
+          password: data.password,
         });
+        return await axios.post<AuthResponse>('/auth/login', data);
       },
       onSuccess: (response) => {
         const { token, user } = response.data;

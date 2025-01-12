@@ -23,6 +23,14 @@ export const UserService = {
   },
 
   /**
+   * 获取用户详情
+   */
+  getUser: async (id: string) => {
+    const res = await axios.get<User>(`/users/${id}`);
+    return res.data;
+  },
+
+  /**
    * 搜索用户
    */
   searchUsers: (params: {
@@ -31,13 +39,6 @@ export const UserService = {
     pageSize?: number;
   }) => {
     return axios.get<PaginatedUsers>('/users/search', { params });
-  },
-
-  /**
-   * 获取用户详情
-   */
-  getUserById: (id: string) => {
-    return axios.get<User>(`/users/${id}`);
   },
 
   /**
@@ -58,13 +59,13 @@ export const UserService = {
    * 重置用户密码
    */
   resetPassword: (id: string, data: ResetPasswordData) => {
-    return axios.patch(`/users/${id}/password`, data);
+    return axios.post(`/users/${id}/reset-password`, data);
   },
 
   /**
    * 修改密码
    */
   changePassword: (data: ChangePasswordData) => {
-    return axios.patch('/users/me/password', data);
+    return axios.post('/users/change-password', data);
   },
 };

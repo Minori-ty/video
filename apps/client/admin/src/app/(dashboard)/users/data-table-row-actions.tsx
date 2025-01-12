@@ -1,16 +1,17 @@
 'use client';
 
 import { Row } from '@tanstack/react-table';
-import { MoreHorizontal, Pencil, Trash2, Key } from 'lucide-react';
-import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useAuthStore } from '@/stores/auth';
+import { UserService } from '@/services/user';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { User } from '@/types/user';
+import { MoreHorizontal, Eye, Pencil, Key, Trash } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -23,36 +24,37 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { User } from '@/types/user';
-import { UserService } from '@/services/user';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
-interface DataTableRowActionsProps {
-  row: Row<User>;
+interface DataTableRowActionsProps<TData> {
+  row: Row<TData>;
 }
 
-export function DataTableRowActions({ row }: DataTableRowActionsProps) {
-  const router = useRouter();
-  const queryClient = useQueryClient();
+export function DataTableRowActions<TData>({
+  row,
+}: DataTableRowActionsProps<TData>) {
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const user = row.original as User;
+  const currentUser = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
+  const router = useRouter();
 
-  const handleDelete = async () => {
-    try {
-      setIsDeleting(true);
-      await UserService.deleteUser(row.original.id);
-      await queryClient.invalidateQueries({ queryKey: ['users'] });
+  const { mutate: deleteUser } = useMutation({
+    mutationFn: () => UserService.deleteUser(user.id),
+    onSuccess: () => {
       toast.success('用户删除成功');
-    } catch (error) {
-      console.error('删除用户失败:', error);
-      toast.error('删除用户失败');
-    } finally {
-      setIsDeleting(false);
-      setShowDeleteDialog(false);
-    }
-  };
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
 
-  const user = row.original;
+  const handleDelete = () => {
+    deleteUser();
+    setShowDeleteDialog(false);
+  };
 
   return (
     <>
@@ -66,25 +68,27 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
             <span className="sr-only">打开菜单</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-[160px]">
+        <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => router.push(`/users/${user.id}`)}>
-            <Pencil className="text-muted-foreground/70 mr-2 h-3.5 w-3.5" />
+            <Eye className="mr-2 h-4 w-4" />
+            查看详情
+          </DropdownMenuItem>
+          <DropdownMenuItem>
+            <Pencil className="mr-2 h-4 w-4" />
             编辑
           </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={() => router.push(`/users/${user.id}/reset-password`)}
-          >
-            <Key className="text-muted-foreground/70 mr-2 h-3.5 w-3.5" />
-            重置密码
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onClick={() => setShowDeleteDialog(true)}
-            disabled={user.role === 'SUPERADMIN'}
-          >
-            <Trash2 className="text-muted-foreground/70 mr-2 h-3.5 w-3.5" />
-            删除
-          </DropdownMenuItem>
+          {currentUser?.role === 'SUPERADMIN' && user.role !== 'SUPERADMIN' && (
+            <>
+              <DropdownMenuItem>
+                <Key className="mr-2 h-4 w-4" />
+                重置密码
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setShowDeleteDialog(true)}>
+                <Trash className="mr-2 h-4 w-4" />
+                删除
+              </DropdownMenuItem>
+            </>
+          )}
         </DropdownMenuContent>
       </DropdownMenu>
 
@@ -93,18 +97,12 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           <AlertDialogHeader>
             <AlertDialogTitle>确定要删除该用户吗？</AlertDialogTitle>
             <AlertDialogDescription>
-              此操作不可逆，删除后用户将无法登录系统。
+              此操作不可撤销。这将永久删除该用户及其所有数据。
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>取消</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleDelete}
-              disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {isDeleting ? '删除中...' : '删除'}
-            </AlertDialogAction>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDelete}>继续</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
