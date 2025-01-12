@@ -6,6 +6,9 @@ import { VideoService } from '../services/video.service';
 import { VideoProcessorService } from '../services/video-processor.service';
 import multer from 'multer';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
+import { PrismaClient } from '@prisma/client';
+
+const prisma = new PrismaClient();
 
 /**
  * 扩展Request类型以包含用户信息
@@ -43,6 +46,18 @@ export const uploadMiddleware = multer({
  * 视频控制器类
  */
 export class VideoController {
+  constructor() {
+    // 绑定方法到实例
+    this.uploadVideo = this.uploadVideo.bind(this);
+    this.deleteVideo = this.deleteVideo.bind(this);
+    this.updateVideo = this.updateVideo.bind(this);
+    this.getUserVideos = this.getUserVideos.bind(this);
+    this.getAllVideos = this.getAllVideos.bind(this);
+    this.getVideoPlayInfo = this.getVideoPlayInfo.bind(this);
+    this.getPendingVideos = this.getPendingVideos.bind(this);
+    this.deleteFailedVideo = this.deleteFailedVideo.bind(this);
+  }
+
   /**
    * 上传视频
    * @param req - 请求对象
@@ -243,6 +258,56 @@ export class VideoController {
     } catch (error) {
       console.error('获取视频播放信息失败:', error);
       res.status(500).json({ message: '获取视频播放信息失败' });
+    }
+  }
+
+  /**
+   * 获取处理中的视频列表
+   * @param req - 请求对象
+   * @param res - 响应对象
+   */
+  async getPendingVideos(req: AuthenticatedRequest, res: Response) {
+    try {
+      const videos = await videoService.getPendingVideos();
+      res.json(videos);
+    } catch (error) {
+      console.error('获取处理中的视频列表失败:', error);
+      res.status(500).json({ message: '获取处理中的视频列表失败' });
+    }
+  }
+
+  /**
+   * 删除失败的视频记录
+   * @param req - 请求对象
+   * @param res - 响应对象
+   */
+  async deleteFailedVideo(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      // 查找视频
+      const video = await prisma.video.findUnique({
+        where: { id },
+      });
+
+      if (!video) {
+        return res.status(404).json({ message: '视频不存在' });
+      }
+
+      // 检查视频状态
+      if (video.status !== 'ERROR') {
+        return res.status(400).json({ message: '只能删除处理失败的视频' });
+      }
+
+      // 删除视频记录
+      await prisma.video.delete({
+        where: { id },
+      });
+
+      res.json({ success: true });
+    } catch (error) {
+      console.error('删除失败视频记录失败:', error);
+      res.status(500).json({ message: '删除失败视频记录失败' });
     }
   }
 }

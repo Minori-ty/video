@@ -3,7 +3,7 @@
 import { FC, PropsWithChildren } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users, Upload, Video } from 'lucide-react';
+import { Users, Upload, Video, ClipboardList } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -17,19 +17,32 @@ import { useAuth } from '@/hooks/use-auth';
 import { useAuthStore } from '@/stores/auth';
 import { toast } from 'sonner';
 
-const menuItems = [
-  {
-    title: '首页',
-    href: '/home',
-    icon: Home,
-  },
+/**
+ * 导航项接口
+ */
+interface NavItem {
+  /** 标题 */
+  title: string;
+  /** 链接 */
+  href: string;
+  /** 图标 */
+  icon: React.ElementType;
+  /** 是否需要管理员权限 */
+  requireAdmin?: boolean;
+}
+
+/**
+ * 导航项列表
+ */
+const navItems: NavItem[] = [
   {
     title: '用户管理',
     href: '/users',
     icon: Users,
+    requireAdmin: true,
   },
   {
-    title: '上传视频',
+    title: '视频上传',
     href: '/videos/upload',
     icon: Upload,
   },
@@ -37,6 +50,12 @@ const menuItems = [
     title: '我的视频',
     href: '/videos/my',
     icon: Video,
+  },
+  {
+    title: '视频审核',
+    href: '/videos/pending',
+    icon: ClipboardList,
+    requireAdmin: true,
   },
 ];
 
@@ -48,7 +67,7 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
 
   const handleLogout = async () => {
     try {
-      await clearAuth();
+      clearAuth();
       toast.success('退出登录成功');
       router.push('/login');
     } catch {
@@ -61,7 +80,7 @@ const Layout: FC<PropsWithChildren> = ({ children }) => {
       {/* 侧边栏 */}
       <aside className="bg-background w-64 border-r">
         <nav className="flex flex-col gap-2 p-4">
-          {menuItems.map((item) => {
+          {navItems.map((item) => {
             const Icon = item.icon;
             return (
               <Link

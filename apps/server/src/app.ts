@@ -2,7 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
-import videoRoutes from './routes/video';
+import videoRoutes from './routes/video.routes';
 import { errorHandler } from './middlewares/error';
 import { requestLogger } from './middlewares/logger';
 import { seed } from '../prisma/seed/seed';

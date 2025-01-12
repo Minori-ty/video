@@ -33,6 +33,17 @@ export interface Video {
   status: 'PENDING' | 'PROCESSING' | 'READY' | 'ERROR';
   /** m3u8播放列表URL */
   m3u8Url?: string;
+  /** 上传用户信息 */
+  user?: {
+    id: string;
+    name: string;
+    email: string;
+  };
+  /** 视频切片信息 */
+  chunks?: {
+    id: string;
+    index: number;
+  }[];
 }
 
 /**
@@ -123,4 +134,21 @@ export const getAllVideos = async (): Promise<Video[]> => {
 export const getVideoPlayInfo = async (id: string): Promise<VideoPlayInfo> => {
   const { data } = await axios.get<VideoPlayInfo>(`/videos/${id}/play`);
   return data;
+};
+
+/**
+ * 获取处理中的视频列表
+ * @returns 处理中的视频列表
+ */
+export const getPendingVideos = async (): Promise<Video[]> => {
+  const { data } = await axios.get<Video[]>('/videos/pending');
+  return data;
+};
+
+/**
+ * 删除失败的视频
+ * @param id - 视频ID
+ */
+export const deleteFailedVideo = async (id: string): Promise<void> => {
+  await axios.delete(`/videos/${id}/failed`);
 };

@@ -241,4 +241,36 @@ export class VideoService {
       where: { id },
     });
   }
+
+  /**
+   * 获取处理中的视频列表
+   * @returns 处理中的视频列表
+   */
+  async getPendingVideos() {
+    return prisma.video.findMany({
+      where: {
+        OR: [
+          { status: 'PENDING' },
+          { status: 'PROCESSING' },
+          { status: 'ERROR' },
+        ],
+      },
+      orderBy: { createdAt: 'desc' },
+      include: {
+        user: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+        chunks: {
+          select: {
+            id: true,
+            index: true,
+          },
+        },
+      },
+    });
+  }
 }

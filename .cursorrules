@@ -37,3 +37,9 @@ Follow these rules when you write code:
 - Use consts instead of functions, for example, “const toggle = () =>”. Also, define a type if possible.
 
 禁止修改axios的请求拦截器
+
+shadcn的安装命令是,在前端项目的目录下
+
+```
+pnpm dlx shadcn@latest add <component>
+```
