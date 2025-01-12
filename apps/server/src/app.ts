@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from './routes/auth';
 import userRoutes from './routes/user';
+import videoRoutes from './routes/video';
 import { errorHandler } from './middlewares/error';
 import { requestLogger } from './middlewares/logger';
 import { seed } from '../prisma/seed/seed';
@@ -27,6 +28,7 @@ app.use(cookieParser() as unknown as RequestHandler);
 // 路由
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/videos', videoRoutes);
 
 // 错误处理
 app.use(errorHandler);

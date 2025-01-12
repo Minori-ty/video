@@ -21,7 +21,7 @@ async function main() {
         data: {
           email: 'root@admin.com',
           password: hashedPassword, // 存储 hash 后的密码
-          name: 'Super Admin',
+          name: 'superadmin',
           role: 'SUPERADMIN',
           lastLoginAt: new Date(),
         },

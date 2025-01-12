@@ -3,7 +3,7 @@
 import { FC, PropsWithChildren } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { Home, Users } from 'lucide-react';
+import { Home, Users, Upload, Video } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -27,6 +27,16 @@ const menuItems = [
     title: '用户管理',
     href: '/users',
     icon: Users,
+  },
+  {
+    title: '上传视频',
+    href: '/videos/upload',
+    icon: Upload,
+  },
+  {
+    title: '我的视频',
+    href: '/videos/my',
+    icon: Video,
   },
 ];
 

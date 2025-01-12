@@ -31,4 +31,22 @@ model User {
     updatedAt      DateTime  @updatedAt // 账户信息更新时间
     role           String    @default("USER") // 用户角色,默认为普通用户
     timezone       String? // 时区
+    videos         Video[] // 用户上传的视频
+}
+
+model Video {
+    id          String   @id @default(cuid()) @map("_id") // 视频唯一标识符
+    title       String // 视频标题
+    description String? // 视频描述
+    videoUrl    String // 视频文件URL
+    coverUrl    String? // 视频封面URL
+    duration    Int? // 视频时长(秒)
+    size        Int // 视频文件大小(字节)
+    mimeType    String // 视频文件类型
+    userId      String // 上传用户ID
+    user        User     @relation(fields: [userId], references: [id]) // 关联用户
+    createdAt   DateTime @default(now()) // 创建时间
+    updatedAt   DateTime @updatedAt // 更新时间
+
+    @@index([userId])
 }
