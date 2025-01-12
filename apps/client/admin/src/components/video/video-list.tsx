@@ -3,7 +3,6 @@
  */
 'use client';
 
-import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   getUserVideos,
@@ -15,6 +14,7 @@ import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Skeleton } from '@/components/ui/skeleton';
 import {
   Dialog,
   DialogContent,
@@ -22,15 +22,17 @@ import {
   DialogTitle,
   DialogFooter,
 } from '@/components/ui/dialog';
-import { formatBytes } from '@/lib/utils';
-import { toast } from 'sonner';
-import { MoreVertical, Pencil, Trash } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import { VideoPlayer } from './video-player';
+import { formatBytes } from '@/lib/utils';
+import { toast } from 'sonner';
+import { MoreVertical, Pencil, Trash } from 'lucide-react';
+import { useState } from 'react';
 
 /**
  * 视频列表组件
@@ -120,20 +122,31 @@ export const VideoList = () => {
   };
 
   if (isLoading) {
-    return <div>加载中...</div>;
+    return (
+      <div className="grid gap-4 md:grid-cols-2">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Card key={i} className="p-4">
+            <Skeleton className="aspect-video w-full" />
+            <Skeleton className="mt-2 h-4 w-1/2" />
+          </Card>
+        ))}
+      </div>
+    );
   }
 
   if (!videos?.length) {
-    return <div>暂无视频</div>;
+    return (
+      <Card className="text-muted-foreground p-4 text-center">暂无视频</Card>
+    );
   }
 
   return (
     <>
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-2">
         {videos.map((video) => (
-          <Card key={video.id} className="space-y-2 p-4">
-            <div className="flex items-start justify-between">
-              <h3 className="font-semibold">{video.title}</h3>
+          <Card key={video.id} className="p-4">
+            <div className="mb-4 flex items-start justify-between">
+              <h3 className="text-lg font-semibold">{video.title}</h3>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -160,21 +173,15 @@ export const VideoList = () => {
               </DropdownMenu>
             </div>
 
-            <div className="bg-muted aspect-video overflow-hidden rounded-lg">
-              <video
-                src={video.videoUrl}
-                className="h-full w-full object-cover"
-                controls
-              />
-            </div>
+            <VideoPlayer videoId={video.id} />
 
             {video.description && (
-              <p className="text-muted-foreground text-sm">
+              <p className="text-muted-foreground mt-2 text-sm">
                 {video.description}
               </p>
             )}
 
-            <div className="text-muted-foreground text-sm">
+            <div className="text-muted-foreground mt-2 text-xs">
               <div>大小：{formatBytes(video.size)}</div>
               <div>类型：{video.mimeType}</div>
               <div>上传时间：{new Date(video.createdAt).toLocaleString()}</div>
@@ -196,7 +203,7 @@ export const VideoList = () => {
               <Input
                 id="title"
                 value={editForm.title}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                onChange={(e) =>
                   setEditForm((prev) => ({ ...prev, title: e.target.value }))
                 }
                 placeholder="请输入视频标题"
@@ -209,7 +216,7 @@ export const VideoList = () => {
               <Textarea
                 id="description"
                 value={editForm.description || ''}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
+                onChange={(e) =>
                   setEditForm((prev) => ({
                     ...prev,
                     description: e.target.value,

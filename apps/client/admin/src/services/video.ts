@@ -14,7 +14,7 @@ export interface Video {
   /** 视频描述 */
   description?: string;
   /** 视频URL */
-  videoUrl: string;
+  url: string;
   /** 视频封面URL */
   coverUrl?: string;
   /** 视频时长(秒) */
@@ -29,6 +29,10 @@ export interface Video {
   createdAt: string;
   /** 更新时间 */
   updatedAt: string;
+  /** 视频状态 */
+  status: 'PENDING' | 'PROCESSING' | 'READY' | 'ERROR';
+  /** m3u8播放列表URL */
+  m3u8Url?: string;
 }
 
 /**
@@ -39,6 +43,22 @@ export interface UpdateVideoParams {
   title: string;
   /** 视频描述 */
   description?: string;
+}
+
+/**
+ * 视频播放信息
+ */
+export interface VideoPlayInfo {
+  /** 视频ID */
+  id: string;
+  /** 视频标题 */
+  title: string;
+  /** 视频状态 */
+  status: 'PENDING' | 'PROCESSING' | 'READY' | 'ERROR';
+  /** m3u8播放列表URL */
+  m3u8Url?: string;
+  /** 视频时长 */
+  duration?: number;
 }
 
 /**
@@ -92,5 +112,15 @@ export const getUserVideos = async (): Promise<Video[]> => {
  */
 export const getAllVideos = async (): Promise<Video[]> => {
   const { data } = await axios.get<Video[]>('/videos');
+  return data;
+};
+
+/**
+ * 获取视频播放信息
+ * @param id - 视频ID
+ * @returns 视频播放信息
+ */
+export const getVideoPlayInfo = async (id: string): Promise<VideoPlayInfo> => {
+  const { data } = await axios.get<VideoPlayInfo>(`/videos/${id}/play`);
   return data;
 };

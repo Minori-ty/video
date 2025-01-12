@@ -50,4 +50,11 @@ router.get('/user', authenticate, videoController.getUserVideos);
  */
 router.get('/', authenticate, videoController.getAllVideos);
 
+/**
+ * 获取视频播放信息
+ * @route GET /api/videos/:id/play
+ * @access 私有
+ */
+router.get('/:id/play', authenticate, videoController.getVideoPlayInfo);
+
 export default router;

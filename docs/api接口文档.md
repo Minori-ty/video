@@ -267,3 +267,162 @@
   - `401` - 未认证
   - `403` - 无权限
   - `404` - 用户不存在
+
+## 视频相关接口
+
+### 上传视频
+
+- 请求地址：`POST /api/videos/upload`
+- 请求头：
+  ```
+  Authorization: Bearer <token>
+  Content-Type: multipart/form-data
+  ```
+- 请求参数：
+  ```typescript
+  {
+    file: File; // 视频文件，大小限制100MB，字段名必须为 'file'
+    title: string; // 视频标题，不能为空
+  }
+  ```
+- 响应状态码：
+  - `201` - 上传成功
+  - `400` - 请求参数错误
+  - `401` - 未认证
+  - `500` - 服务器错误
+- 响应数据：
+  ```typescript
+  {
+    id: string; // 视频ID
+    title: string; // 视频标题
+    url: string; // 视频URL
+    userId: string; // 上传用户ID
+    createdAt: string; // 创建时间
+    updatedAt: string; // 更新时间
+  }
+  ```
+- 错误响应：
+  - `400` - 请求参数错误（未上传文件或未提供标题）
+  - `401` - 未认证
+  - `500` - 上传失败
+
+### 获取用户视频列表
+
+- 请求地址：`GET /api/videos/user`
+- 请求头：
+  ```
+  Authorization: Bearer <token>
+  ```
+- 响应状态码：
+  - `200` - 获取成功
+  - `401` - 未认证
+  - `500` - 服务器错误
+- 响应数据：
+  ```typescript
+  Array<{
+    id: string; // 视频ID
+    title: string; // 视频标题
+    url: string; // 视频URL
+    userId: string; // 上传用户ID
+    createdAt: string; // 创建时间
+    updatedAt: string; // 更新时间
+  }>;
+  ```
+- 错误响应：
+  - `401` - 未认证
+  - `500` - 获取失败
+
+### 获取所有视频列表
+
+- 请求地址：`GET /api/videos`
+- 请求头：
+  ```
+  Authorization: Bearer <token>
+  ```
+- 响应状态码：
+  - `200` - 获取成功
+  - `401` - 未认证
+  - `500` - 服务器错误
+- 响应数据：
+  ```typescript
+  Array<{
+    id: string; // 视频ID
+    title: string; // 视频标题
+    url: string; // 视频URL
+    userId: string; // 上传用户ID
+    createdAt: string; // 创建时间
+    updatedAt: string; // 更新时间
+  }>;
+  ```
+- 错误响应：
+  - `401` - 未认证
+  - `500` - 获取失败
+
+### 删除视频
+
+- 请求地址：`DELETE /api/videos/:id`
+- 请求头：
+  ```
+  Authorization: Bearer <token>
+  ```
+- 路径参数：
+  - `id` - 视频ID
+- 响应状态码：
+  - `200` - 删除成功
+  - `401` - 未认证
+  - `403` - 无权限
+  - `404` - 资源不存在
+  - `500` - 服务器错误
+- 响应数据：
+  ```typescript
+  {
+    success: true;
+  }
+  ```
+- 错误响应：
+  - `401` - 未认证
+  - `403` - 无权删除此视频（非视频上传者）
+  - `404` - 视频不存在
+  - `500` - 删除失败
+
+### 更新视频信息
+
+- 请求地址：`PATCH /api/videos/:id`
+- 请求头：
+  ```
+  Authorization: Bearer <token>
+  ```
+- 路径参数：
+  - `id` - 视频ID
+- 请求参数：
+  ```typescript
+  {
+    title: string; // 视频标题，不能为空
+    description?: string; // 视频描述（可选）
+  }
+  ```
+- 响应状态码：
+  - `200` - 更新成功
+  - `400` - 请求参数错误
+  - `401` - 未认证
+  - `403` - 无权限
+  - `404` - 资源不存在
+  - `500` - 服务器错误
+- 响应数据：
+  ```typescript
+  {
+    id: string; // 视频ID
+    title: string; // 视频标题
+    description: string | null; // 视频描述
+    url: string; // 视频URL
+    userId: string; // 上传用户ID
+    createdAt: string; // 创建时间
+    updatedAt: string; // 更新时间
+  }
+  ```
+- 错误响应：
+  - `400` - 请求参数错误（标题为空）
+  - `401` - 未认证
+  - `403` - 无权修改此视频（非视频上传者）
+  - `404` - 视频不存在
+  - `500` - 更新失败

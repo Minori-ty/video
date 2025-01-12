@@ -2,7 +2,7 @@
  * 视频服务
  */
 import { PrismaClient } from '@prisma/client';
-import { minioClient, BUCKET_NAME } from '../config/minio';
+import { minioService } from './minio.service';
 import { randomUUID } from 'crypto';
 import { extname } from 'path';
 
@@ -44,29 +44,11 @@ export class VideoService {
     const objectName = `${randomUUID()}${ext}`;
 
     try {
-      // 确保bucket存在
-      const bucketExists = await minioClient.bucketExists(BUCKET_NAME);
-      if (!bucketExists) {
-        console.log(`创建存储桶: ${BUCKET_NAME}`);
-        await minioClient.makeBucket(BUCKET_NAME);
-      }
-
       console.log(`上传文件到MinIO: ${objectName}`);
       // 上传文件
-      await minioClient.putObject(
-        BUCKET_NAME,
-        objectName,
-        file.buffer,
-        file.size,
-        {
-          'Content-Type': file.mimetype,
-        }
-      );
-
-      // 生成URL
-      const videoUrl = `http://localhost:9000/${BUCKET_NAME}/${objectName}`;
-      console.log(`文件上传成功: ${videoUrl}`);
-      return videoUrl;
+      const url = await minioService.putObject(objectName, file.buffer);
+      console.log(`文件上传成功: ${url}`);
+      return url;
     } catch (error) {
       console.error('MinIO上传失败:', error);
       throw error;
@@ -75,17 +57,17 @@ export class VideoService {
 
   /**
    * 从MinIO删除视频
-   * @param videoUrl - 视频URL
+   * @param url - 视频URL
    */
-  private async deleteFromMinio(videoUrl: string): Promise<void> {
+  private async deleteFromMinio(url: string): Promise<void> {
     try {
-      const objectName = videoUrl.split('/').pop();
+      const objectName = url.split('/').pop();
       if (!objectName) {
         throw new Error('无效的视频URL');
       }
 
       console.log(`从MinIO删除文件: ${objectName}`);
-      await minioClient.removeObject(BUCKET_NAME, objectName);
+      await minioService.removeObject(objectName);
       console.log('文件删除成功');
     } catch (error) {
       console.error('MinIO删除失败:', error);
@@ -112,11 +94,11 @@ export class VideoService {
       }
 
       // 上传视频到MinIO
-      const videoUrl = await this.uploadToMinio(file);
+      const url = await this.uploadToMinio(file);
 
       console.log('保存视频信息到数据库:', {
         title,
-        videoUrl,
+        url,
         size: file.size,
         mimeType: file.mimetype,
         userId,
@@ -126,7 +108,7 @@ export class VideoService {
       const video = await prisma.video.create({
         data: {
           title,
-          videoUrl,
+          url,
           size: file.size,
           mimeType: file.mimetype,
           userId,
@@ -163,7 +145,7 @@ export class VideoService {
       }
 
       // 从MinIO删除视频文件
-      await this.deleteFromMinio(video.videoUrl);
+      await this.deleteFromMinio(video.url);
 
       // 从数据库删除视频记录
       await prisma.video.delete({
@@ -219,7 +201,10 @@ export class VideoService {
    */
   async getUserVideos(userId: string) {
     return prisma.video.findMany({
-      where: { userId },
+      where: {
+        userId,
+        status: 'READY',
+      },
       orderBy: { createdAt: 'desc' },
     });
   }
@@ -230,6 +215,9 @@ export class VideoService {
    */
   async getAllVideos() {
     return prisma.video.findMany({
+      where: {
+        status: 'READY',
+      },
       orderBy: { createdAt: 'desc' },
       include: {
         user: {
@@ -240,6 +228,17 @@ export class VideoService {
           },
         },
       },
+    });
+  }
+
+  /**
+   * 获取视频详情
+   * @param id - 视频ID
+   * @returns 视频信息
+   */
+  async getVideoById(id: string) {
+    return await prisma.video.findUnique({
+      where: { id },
     });
   }
 }

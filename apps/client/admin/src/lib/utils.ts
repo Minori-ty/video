@@ -14,9 +14,9 @@ export function cn(...inputs: ClassValue[]) {
  * 格式化字节大小
  * @param bytes - 字节数
  * @param decimals - 小数位数
- * @returns 格式化后的字节大小
+ * @returns 格式化后的字符串
  */
-export function formatBytes(bytes: number, decimals = 2) {
+export function formatBytes(bytes: number, decimals = 2): string {
   if (bytes === 0) return '0 Bytes';
 
   const k = 1024;

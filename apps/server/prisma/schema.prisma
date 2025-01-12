@@ -34,19 +34,62 @@ model User {
     videos         Video[] // 用户上传的视频
 }
 
+// 视频状态枚举
+enum VideoStatus {
+    // 等待处理
+    PENDING
+    // 处理中
+    PROCESSING
+    // 处理完成
+    READY
+    // 处理失败
+    ERROR
+}
+
+// 视频模型
 model Video {
-    id          String   @id @default(cuid()) @map("_id") // 视频唯一标识符
+    id          String       @id @default(cuid()) @map("_id") // 视频唯一标识符
     title       String // 视频标题
     description String? // 视频描述
-    videoUrl    String // 视频文件URL
+    url         String // 视频文件URL
     coverUrl    String? // 视频封面URL
     duration    Int? // 视频时长(秒)
     size        Int // 视频文件大小(字节)
     mimeType    String // 视频文件类型
     userId      String // 上传用户ID
-    user        User     @relation(fields: [userId], references: [id]) // 关联用户
-    createdAt   DateTime @default(now()) // 创建时间
-    updatedAt   DateTime @updatedAt // 更新时间
+    user        User         @relation(fields: [userId], references: [id]) // 关联用户
+    createdAt   DateTime     @default(now()) // 创建时间
+    updatedAt   DateTime     @updatedAt // 更新时间
+    // 视频状态
+    status      VideoStatus  @default(PENDING)
+    // m3u8播放列表URL
+    m3u8Url     String?
+    // 视频切片
+    chunks      VideoChunk[]
 
     @@index([userId])
+}
+
+// 视频切片模型
+model VideoChunk {
+    // 切片ID
+    id        String   @id @default(cuid())
+    // 切片索引
+    index     Int
+    // 切片文件名
+    filename  String
+    // 切片URL
+    url       String
+    // 切片时长
+    duration  Int
+    // 所属视频
+    video     Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+    // 视频ID
+    videoId   String
+    // 创建时间
+    createdAt DateTime @default(now())
+    // 更新时间
+    updatedAt DateTime @updatedAt
+
+    @@index([videoId])
 }

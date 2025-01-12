@@ -3,6 +3,7 @@
  */
 import { Request, Response } from 'express';
 import { VideoService } from '../services/video.service';
+import { VideoProcessorService } from '../services/video-processor.service';
 import multer from 'multer';
 import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 
@@ -26,16 +27,17 @@ interface CustomError extends Error {
 }
 
 const videoService = new VideoService();
+const videoProcessorService = new VideoProcessorService();
 
 /**
- * 配置multer用于处理文件上传
+ * 上传中间件配置
  */
-const upload = multer({
+export const uploadMiddleware = multer({
   storage: multer.memoryStorage(),
   limits: {
     fileSize: 100 * 1024 * 1024, // 限制文件大小为100MB
   },
-});
+}).single('file');
 
 /**
  * 视频控制器类
@@ -70,10 +72,16 @@ export class VideoController {
         return res.status(401).json({ message: '未认证' });
       }
 
+      // 上传视频
       const video = await videoService.uploadVideo({
         file,
         title,
         userId: req.user.id,
+      });
+
+      // 异步处理视频
+      videoProcessorService.processVideo(video.id).catch((error) => {
+        console.error('视频处理失败:', error);
       });
 
       console.log('视频上传成功:', video);
@@ -203,14 +211,43 @@ export class VideoController {
       res.status(500).json({ message: '获取视频列表失败' });
     }
   }
+
+  /**
+   * 获取视频播放信息
+   * @param req - 请求对象
+   * @param res - 响应对象
+   */
+  async getVideoPlayInfo(req: AuthenticatedRequest, res: Response) {
+    try {
+      const { id } = req.params;
+
+      const video = await videoService.getVideoById(id);
+      if (!video) {
+        return res.status(404).json({ message: '视频不存在' });
+      }
+
+      if (video.status !== 'READY') {
+        return res.status(400).json({
+          message: '视频未准备就绪',
+          status: video.status,
+        });
+      }
+
+      res.json({
+        id: video.id,
+        title: video.title,
+        status: video.status,
+        m3u8Url: video.m3u8Url,
+        duration: video.duration,
+      });
+    } catch (error) {
+      console.error('获取视频播放信息失败:', error);
+      res.status(500).json({ message: '获取视频播放信息失败' });
+    }
+  }
 }
 
 /**
  * 视频控制器实例
  */
 export const videoController = new VideoController();
-
-/**
- * 上传中间件
- */
-export const uploadMiddleware = upload.single('file');
